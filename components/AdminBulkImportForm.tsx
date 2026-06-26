@@ -169,7 +169,7 @@ export function AdminBulkImportForm({
   onPersonImported: (person: Person) => void;
   onAccountImported: (account: SocialAccount) => void;
 }) {
-  const [text, setText] = useState(sampleRows);
+  const [text, setText] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [summary, setSummary] = useState("");
@@ -305,7 +305,7 @@ export function AdminBulkImportForm({
         </div>
         <div>
           <h2 className="text-xl font-semibold text-ink">Excel import</h2>
-          <p className="mt-1 text-sm text-zinc-500">Paste copied rows from Excel.</p>
+          <p className="mt-1 text-sm text-zinc-500">Upload the workbook or paste copied rows from Excel.</p>
         </div>
       </div>
 
@@ -319,6 +319,7 @@ export function AdminBulkImportForm({
         />
         <textarea
           value={text}
+          placeholder={sampleRows}
           onChange={(event) => setText(event.target.value)}
           className="min-h-32 w-full resize-y rounded-lg border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs outline-none transition focus:border-nd-500 focus:bg-white"
         />
