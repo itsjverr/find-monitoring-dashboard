@@ -5,6 +5,7 @@ import {
   PlatformConnector,
   readJson
 } from "@/lib/connectors/base";
+import { fetchApifyPublicPosts, hasApifyActor } from "@/lib/connectors/apify";
 
 type InstagramMedia = {
   id: string;
@@ -33,6 +34,10 @@ function getAccessToken() {
 export const instagramConnector: PlatformConnector = {
   platform: "Instagram",
   async fetchPublicPosts(account) {
+    if (hasApifyActor("Instagram")) {
+      return fetchApifyPublicPosts("Instagram", account);
+    }
+
     const accessToken = getAccessToken();
 
     if (!accessToken) {

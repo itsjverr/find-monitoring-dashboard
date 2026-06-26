@@ -5,6 +5,7 @@ import {
   PlatformConnector,
   readJson
 } from "@/lib/connectors/base";
+import { fetchApifyPublicPosts, hasApifyActor } from "@/lib/connectors/apify";
 import { NormalizedConnectorPost, SocialAccount } from "@/lib/types";
 
 type FacebookPost = {
@@ -77,6 +78,10 @@ function normalizePost(account: SocialAccount, post: FacebookPost): NormalizedCo
 export const facebookConnector: PlatformConnector = {
   platform: "Facebook",
   async fetchPublicPosts(account) {
+    if (hasApifyActor("Facebook")) {
+      return fetchApifyPublicPosts("Facebook", account);
+    }
+
     const accessToken = getAccessToken();
 
     if (!accessToken) {

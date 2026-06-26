@@ -4,6 +4,7 @@ import {
   PlatformConnector,
   readJson
 } from "@/lib/connectors/base";
+import { fetchApifyPublicPosts, hasApifyActor } from "@/lib/connectors/apify";
 import { SocialAccount } from "@/lib/types";
 
 type XUserResponse = {
@@ -88,6 +89,10 @@ function getEngagement(tweet: NonNullable<XTweetsResponse["data"]>[number]) {
 export const xConnector: PlatformConnector = {
   platform: "X",
   async fetchPublicPosts(account) {
+    if (hasApifyActor("X")) {
+      return fetchApifyPublicPosts("X", account);
+    }
+
     const bearerToken = getBearerToken();
 
     if (!bearerToken) {
