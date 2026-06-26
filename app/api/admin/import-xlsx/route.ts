@@ -19,6 +19,8 @@ type ParsedRow = {
   }>;
 };
 
+export const maxDuration = 30;
+
 function readUInt16(buffer: Buffer, offset: number) {
   return buffer.readUInt16LE(offset);
 }
@@ -291,6 +293,14 @@ function parseXlsx(buffer: Buffer) {
   return parseRows(parseSheet(sheet.toString("utf8"), sharedStrings));
 }
 
+function personKey(fullName: string) {
+  return fullName.trim().toLowerCase();
+}
+
+function accountKey(personId: string, platform: Platform, handle: string) {
+  return `${personId}:${platform}:${handle.trim().toLowerCase()}`;
+}
+
 export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();
 
@@ -302,7 +312,6 @@ export async function POST(request: NextRequest) {
   const rows = parseXlsx(buffer);
   const peopleByName = new Map<string, Person>();
   const importedPeople: Person[] = [];
-  const importedAccounts: SocialAccount[] = [];
 
   const { data: existingPeople, error: peopleError } = await supabase
     .from("people")
@@ -313,53 +322,96 @@ export async function POST(request: NextRequest) {
   }
 
   for (const person of (existingPeople ?? []).map(toPerson)) {
-    peopleByName.set(person.fullName.trim().toLowerCase(), person);
+    peopleByName.set(personKey(person.fullName), person);
   }
 
-  for (const row of rows) {
-    const key = row.fullName.trim().toLowerCase();
-    let person = peopleByName.get(key);
+  const missingPeople = rows
+    .filter((row) => !peopleByName.has(personKey(row.fullName)))
+    .filter((row, index, list) => list.findIndex((entry) => personKey(entry.fullName) === personKey(row.fullName)) === index);
 
-    if (!person) {
-      const { data, error } = await supabase
-        .from("people")
-        .insert({
+  if (missingPeople.length > 0) {
+    const { data, error } = await supabase
+      .from("people")
+      .insert(
+        missingPeople.map((row) => ({
           full_name: row.fullName,
           role: row.role,
           active: true
-        })
-        .select("id, full_name, role, avatar_url, active")
-        .single();
+        }))
+      )
+      .select("id, full_name, role, avatar_url, active");
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
-      person = toPerson(data);
-      peopleByName.set(key, person);
+    for (const person of (data ?? []).map(toPerson)) {
+      peopleByName.set(personKey(person.fullName), person);
       importedPeople.push(person);
+    }
+  }
+
+  const { data: existingAccounts, error: existingAccountsError } = await supabase
+    .from("social_accounts")
+    .select("id, person_id, platform, handle, profile_url, avatar_url, api_account_id, active");
+
+  if (existingAccountsError) {
+    return NextResponse.json({ error: existingAccountsError.message }, { status: 500 });
+  }
+
+  const accountKeys = new Set(
+    ((existingAccounts ?? []) as Array<{
+      person_id: string;
+      platform: Platform;
+      handle: string;
+    }>).map((account) => accountKey(account.person_id, account.platform, account.handle))
+  );
+  const accountPayloads: Array<{
+    person_id: string;
+    platform: Platform;
+    handle: string;
+    profile_url: string;
+    active: boolean;
+  }> = [];
+
+  for (const row of rows) {
+    const person = peopleByName.get(personKey(row.fullName));
+
+    if (!person) {
+      continue;
     }
 
     for (const account of row.accounts) {
-      const { data, error } = await supabase
-        .from("social_accounts")
-        .insert({
-          person_id: person.id,
-          platform: account.platform,
-          handle: account.handle,
-          profile_url: account.profileUrl,
-          active: true
-        })
-        .select("id, person_id, platform, handle, profile_url, avatar_url, api_account_id, active")
-        .single();
+      const key = accountKey(person.id, account.platform, account.handle);
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      if (accountKeys.has(key)) {
+        continue;
       }
 
-      importedAccounts.push(toSocialAccount(data));
+      accountKeys.add(key);
+      accountPayloads.push({
+        person_id: person.id,
+        platform: account.platform,
+        handle: account.handle,
+        profile_url: account.profileUrl,
+        active: true
+      });
     }
   }
+
+  const { data: insertedAccounts, error: accountsError } =
+    accountPayloads.length > 0
+      ? await supabase
+          .from("social_accounts")
+          .insert(accountPayloads)
+          .select("id, person_id, platform, handle, profile_url, avatar_url, api_account_id, active")
+      : { data: [], error: null };
+
+  if (accountsError) {
+    return NextResponse.json({ error: accountsError.message }, { status: 500 });
+  }
+
+  const importedAccounts = ((insertedAccounts ?? []) as Parameters<typeof toSocialAccount>[0][]).map(toSocialAccount);
 
   return NextResponse.json({
     status: "ok",
