@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AdminPeopleForm } from "@/components/AdminPeopleForm";
 import { AdminSocialAccountsForm } from "@/components/AdminSocialAccountsForm";
-import { people, socialAccounts } from "@/lib/mock-data";
+import { getAdminData } from "@/lib/admin-data";
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const { people, socialAccounts } = await getAdminData();
+
   return (
     <main className="min-h-screen px-4 py-5 sm:px-6 xl:px-8">
       <div className="mx-auto max-w-6xl">

@@ -9,33 +9,56 @@ export function AdminPeopleForm({ initialPeople }: { initialPeople: Person[] }) 
   const [people, setPeople] = useState(initialPeople);
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  function addPerson(event: FormEvent<HTMLFormElement>) {
+  async function addPerson(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!fullName.trim() || !role.trim()) {
       return;
     }
 
-    setPeople((currentPeople) => [
-      {
-        id: `local-${Date.now()}`,
-        fullName,
-        role,
-        active: true
-      },
-      ...currentPeople
-    ]);
-    setFullName("");
-    setRole("");
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/admin/people", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ fullName, role })
+      });
+      const data = (await response.json()) as { person?: Person };
+
+      if (data.person) {
+        setPeople((currentPeople) => [data.person as Person, ...currentPeople]);
+        setFullName("");
+        setRole("");
+      }
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function toggleActive(id: string) {
+    const nextPerson = people.find((person) => person.id === id);
+    const nextActive = !(nextPerson?.active ?? false);
+
     setPeople((currentPeople) =>
       currentPeople.map((person) =>
         person.id === id ? { ...person, active: !person.active } : person
       )
     );
+
+    fetch(`/api/admin/people/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ active: nextActive })
+    }).catch(() => {
+      // Keep the interface responsive in mock mode.
+    });
   }
 
   return (
@@ -61,9 +84,10 @@ export function AdminPeopleForm({ initialPeople }: { initialPeople: Person[] }) 
         <button
           className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
           type="submit"
+          disabled={isSaving}
         >
           <Plus size={16} />
-          Add
+          {isSaving ? "Adding" : "Add"}
         </button>
       </form>
 

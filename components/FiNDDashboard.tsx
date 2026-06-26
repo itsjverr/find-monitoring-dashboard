@@ -85,6 +85,8 @@ export function FiNDDashboard({
   );
 
   useEffect(() => {
+    void syncFeed(false);
+
     const interval = window.setInterval(() => {
       void syncFeed(false);
     }, 45000);

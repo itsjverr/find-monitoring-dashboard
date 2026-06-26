@@ -1,7 +1,10 @@
 import { FiNDDashboard } from "@/components/FiNDDashboard";
-import { mockPosts, people, socialAccounts } from "@/lib/mock-data";
+import { getAdminData } from "@/lib/admin-data";
+import { mockPosts } from "@/lib/mock-data";
 
-export default function Home() {
+export default async function Home() {
+  const { people, socialAccounts } = await getAdminData();
+
   return (
     <FiNDDashboard
       initialPosts={mockPosts}
