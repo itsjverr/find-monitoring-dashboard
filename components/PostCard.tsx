@@ -28,10 +28,19 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function isPlaceholderText(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  return (
+    !normalized ||
+    normalized.startsWith("latest facebook post") ||
+    normalized.startsWith("newest facebook post") ||
+    normalized.includes("no caption was returned")
+  );
+}
+
 function PostPreviewFallback({ post }: { post: FeedPost }) {
-  const text =
-    post.text.trim() ||
-    "No caption was returned by the source, but this card keeps the original post context visible.";
+  const hasCaption = !isPlaceholderText(post.text);
 
   return (
     <div className="relative aspect-[4/3] overflow-hidden bg-[#f0f2f5] p-3 text-[#050505] dark:bg-[#18191a] dark:text-[#e4e6eb]">
@@ -44,28 +53,42 @@ function PostPreviewFallback({ post }: { post: FeedPost }) {
               {post.account.handle} · {formatDate(post.publishedAt)}
             </p>
           </div>
-          <span className="ml-auto rounded-full bg-[#1877f2] px-2 py-0.5 text-[10px] font-bold text-white">
+          <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#1877f2] text-[11px] font-black text-white">
             f
           </span>
         </div>
 
-        <div className="px-3 pb-2">
-          <p className="line-clamp-4 whitespace-pre-line text-[13px] font-medium leading-5">
-            {text}
-          </p>
-        </div>
+        {hasCaption ? (
+          <div className="px-3 pb-2">
+            <p className="line-clamp-4 whitespace-pre-line text-[13px] font-medium leading-5">
+              {post.text}
+            </p>
+          </div>
+        ) : null}
 
         <div className="mx-3 min-h-0 flex-1 overflow-hidden rounded-md border border-[#dddfe2] bg-[#f7f8fa] dark:border-[#3a3b3c] dark:bg-[#18191a]">
-          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#e7f3ff] text-[#1877f2] dark:bg-[#263951]">
-              <ExternalLink size={18} />
+          <div className="flex h-full flex-col">
+            <div className="flex min-h-0 flex-1 items-center justify-center bg-gradient-to-br from-[#e7f3ff] via-white to-[#f0f2f5] px-4 text-center dark:from-[#263951] dark:via-[#202124] dark:to-[#18191a]">
+              <div>
+                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[#1877f2] text-lg font-black text-white shadow-sm">
+                  f
+                </div>
+                <p className="text-sm font-black text-[#050505] dark:text-[#e4e6eb]">
+                  Facebook post
+                </p>
+                <p className="mt-1 text-[11px] font-medium text-[#65676b] dark:text-[#b0b3b8]">
+                  Original media and comments open from source
+                </p>
+              </div>
             </div>
-            <p className="line-clamp-2 text-xs font-bold text-[#050505] dark:text-[#e4e6eb]">
-              Open original {post.platform} post
-            </p>
-            <p className="mt-1 line-clamp-1 text-[11px] text-[#65676b] dark:text-[#b0b3b8]">
-              {post.postUrl.replace(/^https?:\/\//, "")}
-            </p>
+            <div className="border-t border-[#dddfe2] bg-[#f5f6f7] px-3 py-2 dark:border-[#3a3b3c] dark:bg-[#202124]">
+              <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#65676b] dark:text-[#b0b3b8]">
+                facebook.com
+              </p>
+              <p className="truncate text-[12px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                View original post
+              </p>
+            </div>
           </div>
         </div>
 
