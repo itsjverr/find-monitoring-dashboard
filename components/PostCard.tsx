@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   Bookmark,
   CheckCircle2,
@@ -11,6 +10,7 @@ import {
   Plus,
   Pin
 } from "lucide-react";
+import { useState } from "react";
 import { FeedPost } from "@/lib/types";
 import { AccountAvatar } from "@/components/AccountAvatar";
 import { PlatformBadge } from "@/components/PlatformBadge";
@@ -23,6 +23,30 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function PostPreviewFallback({ post }: { post: FeedPost }) {
+  return (
+    <div className="relative flex aspect-[4/3] flex-col justify-between overflow-hidden bg-zinc-950 p-5 text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.22),transparent_34%),linear-gradient(145deg,rgba(39,39,42,0.95),rgba(9,9,11,1))]" />
+      <div className="relative flex items-center gap-3">
+        <AccountAvatar account={post.account} size="md" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold">{post.person.fullName}</p>
+          <p className="truncate text-xs text-zinc-300">{post.account.handle}</p>
+        </div>
+      </div>
+      <p className="relative line-clamp-6 text-sm font-medium leading-6 text-zinc-100">
+        {post.text || `Latest ${post.platform} post from ${post.person.fullName}.`}
+      </p>
+      <div className="relative flex items-center justify-between gap-3">
+        <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-zinc-100 ring-1 ring-white/15">
+          Post preview
+        </span>
+        <span className="truncate text-xs font-medium text-zinc-400">{post.platform}</span>
+      </div>
+    </div>
+  );
 }
 
 export function PostCard({
@@ -39,6 +63,8 @@ export function PostCard({
   onFlag: (postId: string) => void;
 }) {
   const preview = post.mediaUrl ?? post.thumbnailUrl;
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImagePreview = Boolean(preview) && !imageFailed;
 
   return (
     <article
@@ -57,15 +83,15 @@ export function PostCard({
         className="block w-full text-left"
         aria-label={`Open ${post.platform} post by ${post.person.fullName}`}
       >
-        {preview ? (
+        {showImagePreview ? (
           <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
-            <Image
+            <img
               src={preview}
               alt=""
-              fill
-              unoptimized={preview.startsWith("data:")}
-              sizes="(min-width: 1536px) 20vw, (min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="object-cover transition duration-300 group-hover:scale-[1.03]"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImageFailed(true)}
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
             />
             {post.mediaType === "video" ? (
               <span className="absolute inset-0 m-auto flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur">
@@ -85,18 +111,19 @@ export function PostCard({
             ) : null}
           </div>
         ) : (
-          <div className="relative flex aspect-[4/3] items-center justify-center bg-zinc-950 px-5 py-5 text-white">
+          <div className="relative">
             {post.isFlagged ? (
-              <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+              <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
                 <Flag size={12} fill="currentColor" />
                 flagged
               </span>
             ) : null}
-            <div className="text-center">
-              <AccountAvatar account={post.account} size="lg" />
-              <p className="mt-4 text-sm font-semibold">{post.person.fullName}</p>
-              <p className="text-xs text-zinc-300">{post.account.handle}</p>
-            </div>
+            {!post.isSeen ? (
+              <span className="absolute left-3 top-3 z-10 rounded-full bg-nd-600 px-2.5 py-1 text-xs font-semibold text-white">
+                new
+              </span>
+            ) : null}
+            <PostPreviewFallback post={post} />
           </div>
         )}
 
@@ -112,9 +139,9 @@ export function PostCard({
             </div>
           </div>
 
-          {preview ? (
-            <p className="line-clamp-4 text-sm leading-6 text-zinc-700">{post.text}</p>
-          ) : null}
+          <p className="line-clamp-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            {post.text}
+          </p>
 
           <div className="flex items-center gap-3">
             <AccountAvatar account={post.account} size="sm" />
