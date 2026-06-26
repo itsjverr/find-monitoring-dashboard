@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f7f6f2;
+  --foreground: #17191f;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0d0f14;
+  --foreground: #f4f4f5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 246, 242, 0.98)),
+    var(--background);
+  color: var(--foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+.dark body {
+  background:
+    linear-gradient(180deg, rgba(18, 20, 26, 0.96), rgba(13, 15, 20, 0.98)),
+    var(--background);
+  color: var(--foreground);
+}
+
+.dark .bg-paper,
+.dark [class*="bg-paper/"] {
+  background-color: rgba(13, 15, 20, 0.88) !important;
+}
+
+.dark .bg-white,
+.dark [class*="bg-white/"] {
+  background-color: rgba(24, 24, 27, 0.94) !important;
+}
+
+.dark .bg-zinc-50,
+.dark [class*="bg-zinc-50"] {
+  background-color: rgba(39, 39, 42, 0.72) !important;
+}
+
+.dark .bg-zinc-100,
+.dark [class*="bg-zinc-100"] {
+  background-color: rgba(63, 63, 70, 0.72) !important;
+}
+
+.dark .border-zinc-100,
+.dark .border-zinc-200,
+.dark .border-zinc-300,
+.dark [class*="border-zinc-"] {
+  border-color: rgba(63, 63, 70, 0.9) !important;
+}
+
+.dark .text-ink {
+  color: #f4f4f5 !important;
+}
+
+.dark .text-zinc-400 {
+  color: #a1a1aa !important;
+}
+
+.dark .text-zinc-500,
+.dark .text-zinc-600,
+.dark .text-zinc-700,
+.dark .text-zinc-800 {
+  color: #d4d4d8 !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-soft,
+.dark .shadow-2xl {
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  color: #f4f4f5;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #a1a1aa;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.masonry {
+  column-gap: 1rem;
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .masonry {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .masonry {
+    column-count: 4;
+  }
+}
+
+@media (min-width: 1536px) {
+  .masonry {
+    column-count: 5;
+  }
+}
