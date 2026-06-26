@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/fetch-posts",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
