@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AdminPeopleForm } from "@/components/AdminPeopleForm";
-import { AdminSocialAccountsForm } from "@/components/AdminSocialAccountsForm";
+import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { getAdminData } from "@/lib/admin-data";
 
 export default async function AdminPage() {
@@ -28,10 +27,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-          <AdminPeopleForm initialPeople={people} />
-          <AdminSocialAccountsForm people={people} initialAccounts={socialAccounts} />
-        </div>
+        <AdminWorkspace initialPeople={people} initialAccounts={socialAccounts} />
       </div>
     </main>
   );

@@ -5,7 +5,15 @@ import { FormEvent, useState } from "react";
 import { Person } from "@/lib/types";
 import { PersonAvatar } from "@/components/PersonAvatar";
 
-export function AdminPeopleForm({ initialPeople }: { initialPeople: Person[] }) {
+export function AdminPeopleForm({
+  initialPeople,
+  onPersonAdded,
+  onPersonActiveChange
+}: {
+  initialPeople: Person[];
+  onPersonAdded?: (person: Person) => void;
+  onPersonActiveChange?: (personId: string, active: boolean) => void;
+}) {
   const [people, setPeople] = useState(initialPeople);
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("");
@@ -32,6 +40,7 @@ export function AdminPeopleForm({ initialPeople }: { initialPeople: Person[] }) 
 
       if (data.person) {
         setPeople((currentPeople) => [data.person as Person, ...currentPeople]);
+        onPersonAdded?.(data.person as Person);
         setFullName("");
         setRole("");
       }
@@ -49,6 +58,7 @@ export function AdminPeopleForm({ initialPeople }: { initialPeople: Person[] }) 
         person.id === id ? { ...person, active: !person.active } : person
       )
     );
+    onPersonActiveChange?.(id, nextActive);
 
     fetch(`/api/admin/people/${id}`, {
       method: "PATCH",

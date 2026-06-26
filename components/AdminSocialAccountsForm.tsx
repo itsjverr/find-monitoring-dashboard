@@ -1,7 +1,7 @@
 "use client";
 
 import { Link2, Plus, Power } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Person, Platform, SocialAccount } from "@/lib/types";
 import { PlatformBadge } from "@/components/PlatformBadge";
 
@@ -26,6 +26,12 @@ export function AdminSocialAccountsForm({
     () => new Map(people.map((person) => [person.id, person])),
     [people]
   );
+
+  useEffect(() => {
+    if (!personId && people[0]?.id) {
+      setPersonId(people[0].id);
+    }
+  }, [people, personId]);
 
   function fillProfileUrl(nextPlatform: Platform) {
     const normalizedHandle = handle.replace(/^@/, "").trim();
