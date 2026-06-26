@@ -1,7 +1,7 @@
 "use client";
 
 import { FileSpreadsheet, Upload } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useMemo, useRef, useState } from "react";
 import { Person, Platform, SocialAccount } from "@/lib/types";
 
 type ImportRow = {
@@ -171,7 +171,9 @@ export function AdminBulkImportForm({
 }) {
   const [text, setText] = useState(sampleRows);
   const [isImporting, setIsImporting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [summary, setSummary] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const rows = useMemo(() => parseImportRows(text), [text]);
 
   async function ensurePerson(row: ImportRow, currentPeople: Person[]) {
@@ -252,6 +254,49 @@ export function AdminBulkImportForm({
     }
   }
 
+  async function uploadWorkbook(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploading(true);
+    setSummary("");
+
+    try {
+      const response = await fetch("/api/admin/import-xlsx", {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        body: file
+      });
+      const data = (await response.json()) as {
+        rows?: number;
+        people?: Person[];
+        accounts?: SocialAccount[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "Excel import failed.");
+      }
+
+      (data.people ?? []).forEach(onPersonImported);
+      (data.accounts ?? []).forEach(onAccountImported);
+      setSummary(
+        `Imported ${data.accounts?.length ?? 0} accounts from ${data.rows ?? 0} Excel rows.`
+      );
+    } catch (error) {
+      setSummary(error instanceof Error ? error.message : "Excel import failed.");
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
+    }
+  }
+
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="mb-5 flex items-center gap-3">
@@ -265,6 +310,13 @@ export function AdminBulkImportForm({
       </div>
 
       <form onSubmit={importRows} className="grid gap-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={uploadWorkbook}
+          className="hidden"
+        />
         <textarea
           value={text}
           onChange={(event) => setText(event.target.value)}
@@ -272,14 +324,25 @@ export function AdminBulkImportForm({
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-zinc-500">{rows.length} rows ready</p>
-          <button
-            className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-            type="submit"
-            disabled={isImporting || rows.length === 0}
-          >
-            <Upload size={16} />
-            {isImporting ? "Importing" : "Import"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              <Upload size={16} />
+              {isUploading ? "Uploading" : "Upload .xlsx"}
+            </button>
+            <button
+              className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-ink px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              type="submit"
+              disabled={isImporting || rows.length === 0}
+            >
+              <Upload size={16} />
+              {isImporting ? "Importing" : "Import pasted rows"}
+            </button>
+          </div>
         </div>
         {summary ? <p className="text-sm font-medium text-zinc-600">{summary}</p> : null}
       </form>
