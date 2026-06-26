@@ -83,7 +83,14 @@ export function PostDetailDrawer({
         <div className="space-y-6 p-5">
           {preview ? (
             <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-zinc-100">
-              <Image src={preview} alt="" fill sizes="560px" className="object-cover" />
+              <Image
+                src={preview}
+                alt=""
+                fill
+                unoptimized={preview.startsWith("data:")}
+                sizes="560px"
+                className="object-cover"
+              />
             </div>
           ) : null}
 

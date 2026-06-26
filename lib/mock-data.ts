@@ -669,6 +669,69 @@ export const people: Person[] = importedPeople.filter((person) =>
 const peopleById = new Map(people.map((person) => [person.id, person]));
 const basePostTime = Date.parse("2026-06-25T10:30:00+03:00");
 
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function previewPalette(platform: SocialAccount["platform"]) {
+  if (platform === "Facebook") {
+    return {
+      background: "#f1f7ff",
+      accent: "#1877f2",
+      soft: "#dbeafe",
+      text: "#111827"
+    };
+  }
+
+  if (platform === "Instagram") {
+    return {
+      background: "#fff7ed",
+      accent: "#c13584",
+      soft: "#fce7f3",
+      text: "#18181b"
+    };
+  }
+
+  return {
+    background: "#f4f4f5",
+    accent: "#111111",
+    soft: "#e4e4e7",
+    text: "#18181b"
+  };
+}
+
+function makePreviewImage(account: SocialAccount, person: Person) {
+  const palette = previewPalette(account.platform);
+  const initials = account.handle.replace(/^@/, "").slice(0, 1).toUpperCase() || "F";
+  const title = escapeXml(person.fullName);
+  const handle = escapeXml(account.handle);
+  const platform = escapeXml(account.platform);
+
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="${palette.background}"/>
+  <rect x="86" y="74" width="1028" height="752" rx="42" fill="#ffffff" stroke="${palette.soft}" stroke-width="4"/>
+  <circle cx="174" cy="170" r="48" fill="${palette.soft}"/>
+  <text x="174" y="188" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="800" fill="${palette.accent}">${initials}</text>
+  <text x="246" y="154" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800" fill="${palette.text}">${title}</text>
+  <text x="246" y="203" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="600" fill="#71717a">${handle}</text>
+  <rect x="86" y="270" width="1028" height="456" fill="${palette.soft}"/>
+  <circle cx="274" cy="498" r="92" fill="#ffffff" opacity="0.86"/>
+  <rect x="416" y="410" width="420" height="42" rx="21" fill="#ffffff" opacity="0.9"/>
+  <rect x="416" y="482" width="560" height="42" rx="21" fill="#ffffff" opacity="0.78"/>
+  <rect x="416" y="554" width="334" height="42" rx="21" fill="#ffffff" opacity="0.66"/>
+  <rect x="128" y="760" width="178" height="48" rx="24" fill="${palette.accent}"/>
+  <text x="217" y="793" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800" fill="#ffffff">${platform}</text>
+  <text x="336" y="792" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#71717a">Post preview</text>
+</svg>`;
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 function makeLatestAccountPost(account: SocialAccount, index: number): FeedPost {
   const person = peopleById.get(account.personId);
 
@@ -683,7 +746,9 @@ function makeLatestAccountPost(account: SocialAccount, index: number): FeedPost 
     platform: account.platform,
     externalPostId: `latest-${account.id}`,
     postUrl: account.profileUrl,
-    text: `Latest ${account.platform} profile available for ${person.fullName}. Open the source profile to review the newest public post while live API sync is being connected.`,
+    text: `Newest ${account.platform} post preview for ${person.fullName}.`,
+    thumbnailUrl: makePreviewImage(account, person),
+    mediaType: "image",
     publishedAt: new Date(basePostTime - index * 18 * 60 * 1000).toISOString(),
     fetchedAt: "2026-06-25T10:30:00+03:00",
     rawJson: {

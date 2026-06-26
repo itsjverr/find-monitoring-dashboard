@@ -63,6 +63,7 @@ export function PostCard({
               src={preview}
               alt=""
               fill
+              unoptimized={preview.startsWith("data:")}
               sizes="(min-width: 1536px) 20vw, (min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               className="object-cover transition duration-300 group-hover:scale-[1.03]"
             />
@@ -84,21 +85,18 @@ export function PostCard({
             ) : null}
           </div>
         ) : (
-          <div className="relative bg-zinc-950 px-5 py-5 text-white">
+          <div className="relative flex aspect-[4/3] items-center justify-center bg-zinc-950 px-5 py-5 text-white">
             {post.isFlagged ? (
               <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
                 <Flag size={12} fill="currentColor" />
                 flagged
               </span>
             ) : null}
-            <div className="mb-4 flex items-center gap-3">
-              <AccountAvatar account={post.account} />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{post.person.fullName}</p>
-                <p className="truncate text-xs text-zinc-300">{post.account.handle}</p>
-              </div>
+            <div className="text-center">
+              <AccountAvatar account={post.account} size="lg" />
+              <p className="mt-4 text-sm font-semibold">{post.person.fullName}</p>
+              <p className="text-xs text-zinc-300">{post.account.handle}</p>
             </div>
-            <p className="line-clamp-6 text-xl font-semibold leading-snug">{post.text}</p>
           </div>
         )}
 
