@@ -6,9 +6,12 @@ import {
   Copy,
   ExternalLink,
   Flag,
+  MessageCircle,
   Play,
   Plus,
-  Pin
+  Pin,
+  Share2,
+  ThumbsUp
 } from "lucide-react";
 import { useState } from "react";
 import { FeedPost } from "@/lib/types";
@@ -26,24 +29,60 @@ function formatDate(value: string) {
 }
 
 function PostPreviewFallback({ post }: { post: FeedPost }) {
+  const text =
+    post.text.trim() ||
+    "No caption was returned by the source, but this card keeps the original post context visible.";
+
   return (
-    <div className="relative flex aspect-[4/3] flex-col justify-between overflow-hidden bg-zinc-950 p-5 text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.22),transparent_34%),linear-gradient(145deg,rgba(39,39,42,0.95),rgba(9,9,11,1))]" />
-      <div className="relative flex items-center gap-3">
-        <AccountAvatar account={post.account} size="md" />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold">{post.person.fullName}</p>
-          <p className="truncate text-xs text-zinc-300">{post.account.handle}</p>
+    <div className="relative aspect-[4/3] overflow-hidden bg-[#f0f2f5] p-3 text-[#050505] dark:bg-[#18191a] dark:text-[#e4e6eb]">
+      <div className="flex h-full flex-col overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-black/10 dark:bg-[#242526] dark:ring-white/10">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <AccountAvatar account={post.account} size="sm" />
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-bold leading-4">{post.person.fullName}</p>
+            <p className="truncate text-[11px] font-medium leading-4 text-[#65676b] dark:text-[#b0b3b8]">
+              {post.account.handle} · {formatDate(post.publishedAt)}
+            </p>
+          </div>
+          <span className="ml-auto rounded-full bg-[#1877f2] px-2 py-0.5 text-[10px] font-bold text-white">
+            f
+          </span>
         </div>
-      </div>
-      <p className="relative line-clamp-6 text-sm font-medium leading-6 text-zinc-100">
-        {post.text || `Latest ${post.platform} post from ${post.person.fullName}.`}
-      </p>
-      <div className="relative flex items-center justify-between gap-3">
-        <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-zinc-100 ring-1 ring-white/15">
-          Post preview
-        </span>
-        <span className="truncate text-xs font-medium text-zinc-400">{post.platform}</span>
+
+        <div className="px-3 pb-2">
+          <p className="line-clamp-4 whitespace-pre-line text-[13px] font-medium leading-5">
+            {text}
+          </p>
+        </div>
+
+        <div className="mx-3 min-h-0 flex-1 overflow-hidden rounded-md border border-[#dddfe2] bg-[#f7f8fa] dark:border-[#3a3b3c] dark:bg-[#18191a]">
+          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#e7f3ff] text-[#1877f2] dark:bg-[#263951]">
+              <ExternalLink size={18} />
+            </div>
+            <p className="line-clamp-2 text-xs font-bold text-[#050505] dark:text-[#e4e6eb]">
+              Open original {post.platform} post
+            </p>
+            <p className="mt-1 line-clamp-1 text-[11px] text-[#65676b] dark:text-[#b0b3b8]">
+              {post.postUrl.replace(/^https?:\/\//, "")}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-auto flex items-center justify-around border-t border-[#dddfe2] px-3 py-2 text-[11px] font-bold text-[#65676b] dark:border-[#3a3b3c] dark:text-[#b0b3b8]">
+          <span className="flex items-center gap-1">
+            <ThumbsUp size={13} />
+            Like
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageCircle size={13} />
+            Comment
+          </span>
+          <span className="flex items-center gap-1">
+            <Share2 size={13} />
+            Share
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -64,7 +103,7 @@ export function PostCard({
 }) {
   const preview = post.mediaUrl ?? post.thumbnailUrl;
   const [imageFailed, setImageFailed] = useState(false);
-  const showImagePreview = Boolean(preview) && !imageFailed;
+  const showImagePreview = Boolean(preview) && !imageFailed && post.platform !== "Facebook";
 
   return (
     <article
