@@ -9,10 +9,14 @@ const platforms: Platform[] = ["X", "Facebook", "Instagram"];
 
 export function AdminSocialAccountsForm({
   people,
-  initialAccounts
+  initialAccounts,
+  onAccountAdded,
+  onAccountActiveChange
 }: {
   people: Person[];
   initialAccounts: SocialAccount[];
+  onAccountAdded?: (account: SocialAccount) => void;
+  onAccountActiveChange?: (accountId: string, active: boolean) => void;
 }) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [personId, setPersonId] = useState(people[0]?.id ?? "");
@@ -32,6 +36,10 @@ export function AdminSocialAccountsForm({
       setPersonId(people[0].id);
     }
   }, [people, personId]);
+
+  useEffect(() => {
+    setAccounts(initialAccounts);
+  }, [initialAccounts]);
 
   function fillProfileUrl(nextPlatform: Platform) {
     const normalizedHandle = handle.replace(/^@/, "").trim();
@@ -76,6 +84,7 @@ export function AdminSocialAccountsForm({
 
       if (data.account) {
         setAccounts((currentAccounts) => [data.account as SocialAccount, ...currentAccounts]);
+        onAccountAdded?.(data.account as SocialAccount);
         setHandle("");
         setProfileUrl("");
         setApiAccountId("");
@@ -94,6 +103,7 @@ export function AdminSocialAccountsForm({
         account.id === id ? { ...account, active: !account.active } : account
       )
     );
+    onAccountActiveChange?.(id, nextActive);
 
     fetch(`/api/admin/social-accounts/${id}`, {
       method: "PATCH",
@@ -205,8 +215,8 @@ export function AdminSocialAccountsForm({
                       Connected
                     </span>
                   ) : (
-                    <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
-                      Needs API ID
+                    <span className="rounded-full bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700">
+                      Ready
                     </span>
                   )}
                 </div>
