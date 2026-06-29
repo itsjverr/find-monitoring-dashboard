@@ -275,6 +275,8 @@ export function AdminBulkImportForm({
       });
       const data = (await response.json()) as {
         rows?: number;
+        accountCandidates?: number;
+        skippedDuplicateAccounts?: number;
         people?: Person[];
         accounts?: SocialAccount[];
         error?: string;
@@ -287,7 +289,13 @@ export function AdminBulkImportForm({
       (data.people ?? []).forEach(onPersonImported);
       (data.accounts ?? []).forEach(onAccountImported);
       setSummary(
-        `Imported ${data.accounts?.length ?? 0} accounts from ${data.rows ?? 0} Excel rows.`
+        `Workbook checked: ${data.rows ?? 0} people rows, ${
+          data.accountCandidates ?? 0
+        } social sources. Added ${data.accounts?.length ?? 0} new accounts${
+          data.skippedDuplicateAccounts
+            ? `, skipped ${data.skippedDuplicateAccounts} already imported.`
+            : "."
+        }`
       );
     } catch (error) {
       setSummary(error instanceof Error ? error.message : "Excel import failed.");

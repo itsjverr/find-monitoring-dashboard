@@ -32,6 +32,8 @@ export function toPerson(row: DbPerson): Person {
 }
 
 export function toSocialAccount(row: DbSocialAccount): SocialAccount {
+  const hasPublicSource = Boolean(row.profile_url?.trim());
+
   return {
     id: row.id,
     personId: row.person_id,
@@ -41,7 +43,7 @@ export function toSocialAccount(row: DbSocialAccount): SocialAccount {
     avatarUrl: row.avatar_url ?? undefined,
     apiAccountId: row.api_account_id ?? undefined,
     active: row.active,
-    connected: Boolean(row.api_account_id)
+    connected: Boolean(row.api_account_id) || hasPublicSource
   };
 }
 

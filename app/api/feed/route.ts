@@ -60,7 +60,9 @@ function toFeedPost(row: DbFeedPost): FeedPost {
     avatarUrl: row.social_accounts.avatar_url ?? undefined,
     apiAccountId: row.social_accounts.api_account_id ?? undefined,
     active: row.social_accounts.active,
-    connected: Boolean(row.social_accounts.api_account_id)
+    connected:
+      Boolean(row.social_accounts.api_account_id) ||
+      Boolean(row.social_accounts.profile_url?.trim())
   };
 
   return {

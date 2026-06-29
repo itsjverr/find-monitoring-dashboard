@@ -192,8 +192,8 @@ export function AdminSocialAccountsForm({
           </button>
         </div>
         <p className="text-xs leading-5 text-zinc-500">
-          Facebook needs a Page ID, Instagram needs an IG Business/Creator ID, and X
-          can use a username or user ID.
+          Public URLs are enough for the free source workflow. API IDs can be added later
+          for official or paid connectors.
         </p>
       </form>
 
@@ -212,16 +212,17 @@ export function AdminSocialAccountsForm({
                   <p className="truncate text-sm font-semibold text-ink">{account.handle}</p>
                   {account.connected ? (
                     <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-                      Connected
+                      Source ready
                     </span>
                   ) : (
-                    <span className="rounded-full bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700">
-                      Ready
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+                      Needs source
                     </span>
                   )}
                 </div>
                 <p className="mt-1 truncate text-sm text-zinc-500">
-                  {person?.fullName ?? "Unassigned"} · {account.apiAccountId ?? "Not connected"}
+                  {person?.fullName ?? "Unassigned"} ·{" "}
+                  {account.apiAccountId ? `API ID: ${account.apiAccountId}` : "Public URL workflow"}
                 </p>
                 <a
                   href={account.profileUrl}

@@ -117,6 +117,74 @@ function pickFirstArrayString(item: ApifyItem, paths: string[]) {
   return undefined;
 }
 
+function looksLikeImageUrl(value: string) {
+  return (
+    /^https?:\/\//i.test(value) &&
+    (/\.(avif|gif|jpe?g|png|webp)(\?|$)/i.test(value) ||
+      /scontent|fbcdn|cdninstagram|twimg|image|photo|picture/i.test(value))
+  );
+}
+
+function findImageUrl(value: unknown, depth = 0): string | undefined {
+  if (depth > 5 || value == null) {
+    return undefined;
+  }
+
+  if (typeof value === "string") {
+    return looksLikeImageUrl(value) ? value : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const result = findImageUrl(entry, depth + 1);
+
+      if (result) {
+        return result;
+      }
+    }
+
+    return undefined;
+  }
+
+  const object = asObject(value);
+
+  if (!object) {
+    return undefined;
+  }
+
+  const preferredKeys = [
+    "full_picture",
+    "fullPicture",
+    "displayUrl",
+    "imageUrl",
+    "image",
+    "thumbnailUrl",
+    "thumbnail",
+    "picture",
+    "photo",
+    "src",
+    "url"
+  ];
+
+  for (const key of preferredKeys) {
+    const result = findImageUrl(object[key], depth + 1);
+
+    if (result) {
+      return result;
+    }
+  }
+
+  for (const entry of Object.values(object)) {
+    const result = findImageUrl(entry, depth + 1);
+
+    if (result) {
+      return result;
+    }
+  }
+
+  return undefined;
+}
+
 function toIsoDate(value: string | undefined) {
   if (!value) {
     return new Date().toISOString();
@@ -153,6 +221,10 @@ function normalizeApifyItem(
     ]) ?? account.profileUrl;
   const image =
     pickString(item, [
+      "full_picture",
+      "fullPicture",
+      "picture",
+      "photo",
       "displayUrl",
       "imageUrl",
       "image",
@@ -161,7 +233,9 @@ function normalizeApifyItem(
       "mediaUrl",
       "videoThumbnail",
       "owner.profilePicUrl"
-    ]) ?? pickFirstArrayString(item, ["images", "imageUrls", "media", "attachments"]);
+    ]) ??
+    pickFirstArrayString(item, ["images", "imageUrls", "media", "attachments"]) ??
+    findImageUrl(item);
   const video = pickString(item, ["videoUrl", "video", "video.url", "videoUrlHd"]);
   const text =
     pickString(item, [

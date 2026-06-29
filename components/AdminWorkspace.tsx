@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AdminBulkImportForm } from "@/components/AdminBulkImportForm";
 import { AdminPeopleForm } from "@/components/AdminPeopleForm";
 import { AdminSocialAccountsForm } from "@/components/AdminSocialAccountsForm";
+import { AdminSyncPanel } from "@/components/AdminSyncPanel";
 import { Person, SocialAccount } from "@/lib/types";
 
 export function AdminWorkspace({
@@ -42,6 +43,7 @@ export function AdminWorkspace({
 
   return (
     <div className="space-y-5">
+      <AdminSyncPanel />
       <AdminBulkImportForm
         people={people}
         onPersonImported={addPerson}

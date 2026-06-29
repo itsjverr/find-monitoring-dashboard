@@ -6,6 +6,7 @@ import {
   Copy,
   ExternalLink,
   Flag,
+  ImageOff,
   MessageCircle,
   Play,
   Plus,
@@ -41,6 +42,13 @@ function isPlaceholderText(value: string) {
 
 function PostPreviewFallback({ post }: { post: FeedPost }) {
   const hasCaption = !isPlaceholderText(post.text);
+  const host = (() => {
+    try {
+      return new URL(post.postUrl).hostname.replace(/^www\./, "");
+    } catch {
+      return post.platform;
+    }
+  })();
 
   return (
     <div className="relative aspect-[4/3] overflow-hidden bg-[#f0f2f5] p-3 text-[#050505] dark:bg-[#18191a] dark:text-[#e4e6eb]">
@@ -58,35 +66,35 @@ function PostPreviewFallback({ post }: { post: FeedPost }) {
           </span>
         </div>
 
-        {hasCaption ? (
-          <div className="px-3 pb-2">
-            <p className="line-clamp-4 whitespace-pre-line text-[13px] font-medium leading-5">
-              {post.text}
-            </p>
-          </div>
-        ) : null}
+        <div className="px-3 pb-2">
+          <p className="line-clamp-4 whitespace-pre-line text-[13px] font-semibold leading-5">
+            {hasCaption
+              ? post.text
+              : "Native media was not returned by the source. The original post remains linked for verification."}
+          </p>
+        </div>
 
         <div className="mx-3 min-h-0 flex-1 overflow-hidden rounded-md border border-[#dddfe2] bg-[#f7f8fa] dark:border-[#3a3b3c] dark:bg-[#18191a]">
           <div className="flex h-full flex-col">
             <div className="flex min-h-0 flex-1 items-center justify-center bg-gradient-to-br from-[#e7f3ff] via-white to-[#f0f2f5] px-4 text-center dark:from-[#263951] dark:via-[#202124] dark:to-[#18191a]">
               <div>
-                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[#1877f2] text-lg font-black text-white shadow-sm">
-                  f
+                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#1877f2] shadow-sm ring-1 ring-black/10 dark:bg-[#242526] dark:ring-white/10">
+                  <ImageOff size={20} />
                 </div>
                 <p className="text-sm font-black text-[#050505] dark:text-[#e4e6eb]">
-                  Facebook post
+                  Source preview
                 </p>
                 <p className="mt-1 text-[11px] font-medium text-[#65676b] dark:text-[#b0b3b8]">
-                  Original media and comments open from source
+                  Open the original post for native media
                 </p>
               </div>
             </div>
             <div className="border-t border-[#dddfe2] bg-[#f5f6f7] px-3 py-2 dark:border-[#3a3b3c] dark:bg-[#202124]">
               <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#65676b] dark:text-[#b0b3b8]">
-                facebook.com
+                {host}
               </p>
               <p className="truncate text-[12px] font-bold text-[#050505] dark:text-[#e4e6eb]">
-                View original post
+                Open original {post.platform} post
               </p>
             </div>
           </div>
@@ -126,7 +134,8 @@ export function PostCard({
 }) {
   const preview = post.mediaUrl ?? post.thumbnailUrl;
   const [imageFailed, setImageFailed] = useState(false);
-  const showImagePreview = Boolean(preview) && !imageFailed && post.platform !== "Facebook";
+  const showImagePreview = Boolean(preview) && !imageFailed;
+  const hasRealCaption = !isPlaceholderText(post.text);
 
   return (
     <article
@@ -201,9 +210,15 @@ export function PostCard({
             </div>
           </div>
 
-          <p className="line-clamp-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-            {post.text}
-          </p>
+          {hasRealCaption ? (
+            <p className="line-clamp-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+              {post.text}
+            </p>
+          ) : (
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold leading-5 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+              Source ready. Open the original post for native caption and media.
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <AccountAvatar account={post.account} size="sm" />

@@ -108,7 +108,13 @@ export function FiNDDashboard({
   const newCount = posts.filter((post) => !post.isSeen).length;
   const pinnedCount = posts.filter((post) => post.isPinned).length;
   const flaggedCount = posts.filter((post) => post.isFlagged).length;
-  const disconnectedCount = socialAccounts.filter((account) => !account.connected).length;
+  const sourceIssueCount = socialAccounts.filter(
+    (account) => account.active && !account.profileUrl?.trim()
+  ).length;
+  const lastFetchedAt = posts
+    .map((post) => new Date(post.fetchedAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
   const flaggedPosts = posts
     .filter((post) => post.isFlagged)
     .sort((a, b) => b.engagementCount - a.engagementCount);
@@ -281,7 +287,32 @@ export function FiNDDashboard({
           <Metric label="New posts" value={newCount} tone="blue" />
           <Metric label="Flagged" value={flaggedCount} tone="rose" />
           <Metric label="Pinned" value={pinnedCount} tone="amber" />
-          <Metric label="Not connected" value={disconnectedCount} tone="zinc" />
+          <Metric label="Source issues" value={sourceIssueCount} tone="zinc" />
+        </div>
+
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white/80 px-4 py-3 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-900/80">
+          <div>
+            <p className="font-semibold text-ink">Source health</p>
+            <p className="text-zinc-500">
+              {sourceIssueCount === 0
+                ? "All active accounts have a public source URL."
+                : `${sourceIssueCount} active accounts need a source URL.`}
+            </p>
+          </div>
+          <div className="text-left text-xs font-semibold text-zinc-500 sm:text-right">
+            <p>{posts.length} posts loaded</p>
+            <p>
+              Last fetch:{" "}
+              {lastFetchedAt
+                ? new Intl.DateTimeFormat("en", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  }).format(lastFetchedAt)
+                : "not available"}
+            </p>
+          </div>
         </div>
 
         <FlaggedPostsSection

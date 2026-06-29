@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       apiAccountId: apiAccountId || undefined,
       avatarUrl: body.avatarUrl || undefined,
       active: true,
-      connected: Boolean(apiAccountId)
+      connected: Boolean(apiAccountId) || Boolean(profileUrl)
     };
 
     return NextResponse.json({ status: "mock", account });

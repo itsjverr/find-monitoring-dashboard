@@ -373,6 +373,8 @@ export async function POST(request: NextRequest) {
     profile_url: string;
     active: boolean;
   }> = [];
+  let accountCandidates = 0;
+  let skippedDuplicateAccounts = 0;
 
   for (const row of rows) {
     const person = peopleByName.get(personKey(row.fullName));
@@ -382,9 +384,11 @@ export async function POST(request: NextRequest) {
     }
 
     for (const account of row.accounts) {
+      accountCandidates += 1;
       const key = accountKey(person.id, account.platform, account.handle);
 
       if (accountKeys.has(key)) {
+        skippedDuplicateAccounts += 1;
         continue;
       }
 
@@ -416,6 +420,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     status: "ok",
     rows: rows.length,
+    accountCandidates,
+    skippedDuplicateAccounts,
     people: importedPeople,
     accounts: importedAccounts
   });
