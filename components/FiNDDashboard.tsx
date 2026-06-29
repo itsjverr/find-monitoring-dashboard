@@ -31,6 +31,32 @@ function withinDateRange(dateValue: string, range: string) {
   return new Date(dateValue).getTime() >= threshold;
 }
 
+function isPlaceholderText(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  return (
+    !normalized ||
+    normalized.startsWith("latest facebook post") ||
+    normalized.startsWith("newest facebook post") ||
+    normalized.includes("no caption was returned") ||
+    normalized.includes("native media was not returned") ||
+    normalized.includes("source ready. open the original")
+  );
+}
+
+function isPresentablePost(post: FeedPost) {
+  return Boolean(post.mediaUrl || post.thumbnailUrl || !isPlaceholderText(post.text));
+}
+
+function formatDateTime(value: number) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(value);
+}
+
 export function FiNDDashboard({
   initialPosts,
   people,
@@ -44,7 +70,7 @@ export function FiNDDashboard({
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FeedFilter>("All");
   const [person, setPerson] = useState("all");
-  const [dateRange, setDateRange] = useState("all");
+  const [dateRange, setDateRange] = useState("30d");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [visibleCount, setVisibleCount] = useState(8);
@@ -105,24 +131,30 @@ export function FiNDDashboard({
     };
   }, [syncFeed]);
 
-  const newCount = posts.filter((post) => !post.isSeen).length;
-  const pinnedCount = posts.filter((post) => post.isPinned).length;
-  const flaggedCount = posts.filter((post) => post.isFlagged).length;
+  const presentablePosts = useMemo(() => posts.filter(isPresentablePost), [posts]);
+  const reviewPool = useMemo(
+    () => presentablePosts.filter((post) => withinDateRange(post.publishedAt, "30d")),
+    [presentablePosts]
+  );
+  const hiddenContentCount = posts.length - presentablePosts.length;
   const sourceIssueCount = socialAccounts.filter(
     (account) => account.active && !account.profileUrl?.trim()
   ).length;
-  const lastFetchedAt = posts
+  const hiddenSourceCount = hiddenContentCount + sourceIssueCount;
+  const pinnedCount = reviewPool.filter((post) => post.isPinned).length;
+  const flaggedCount = reviewPool.filter((post) => post.isFlagged).length;
+  const lastFetchedAt = presentablePosts
     .map((post) => new Date(post.fetchedAt).getTime())
     .filter(Number.isFinite)
     .sort((a, b) => b - a)[0];
-  const flaggedPosts = posts
+  const flaggedPosts = reviewPool
     .filter((post) => post.isFlagged)
     .sort((a, b) => b.engagementCount - a.engagementCount);
 
   const filteredPosts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return [...posts]
+    return [...presentablePosts]
       .filter((post) => {
         const searchable = [
           post.text,
@@ -168,7 +200,7 @@ export function FiNDDashboard({
 
         return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
       });
-  }, [activeFilter, dateRange, person, posts, query, sortMode]);
+  }, [activeFilter, dateRange, person, presentablePosts, query, sortMode]);
 
   const visiblePosts = filteredPosts.slice(0, visibleCount);
 
@@ -284,33 +316,25 @@ export function FiNDDashboard({
 
       <section className="mx-auto max-w-[1800px] px-4 py-5 sm:px-6 xl:px-8">
         <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="New posts" value={newCount} tone="blue" />
+          <Metric label="Review pool" value={reviewPool.length} tone="blue" />
           <Metric label="Flagged" value={flaggedCount} tone="rose" />
           <Metric label="Pinned" value={pinnedCount} tone="amber" />
-          <Metric label="Source issues" value={sourceIssueCount} tone="zinc" />
+          <Metric label="Hidden sources" value={hiddenSourceCount} tone="zinc" />
         </div>
 
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white/80 px-4 py-3 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-900/80">
           <div>
-            <p className="font-semibold text-ink">Source health</p>
+            <p className="font-semibold text-ink">Home feed quality</p>
             <p className="text-zinc-500">
-              {sourceIssueCount === 0
-                ? "All active accounts have a public source URL."
-                : `${sourceIssueCount} active accounts need a source URL.`}
+              {hiddenSourceCount === 0
+                ? "Only recent, readable posts are shown in the home feed."
+                : `${hiddenSourceCount} private, empty, old, or incomplete sources are kept out of the home feed.`}
             </p>
           </div>
           <div className="text-left text-xs font-semibold text-zinc-500 sm:text-right">
-            <p>{posts.length} posts loaded</p>
+            <p>{reviewPool.length} review-ready posts from the last 30 days</p>
             <p>
-              Last fetch:{" "}
-              {lastFetchedAt
-                ? new Intl.DateTimeFormat("en", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  }).format(lastFetchedAt)
-                : "not available"}
+              Last fetch: {lastFetchedAt ? formatDateTime(lastFetchedAt) : "not available"}
             </p>
           </div>
         </div>
@@ -321,7 +345,7 @@ export function FiNDDashboard({
           onFlag={toggleFlag}
         />
 
-        <PersonStatsSection people={people} posts={posts} />
+        <PersonStatsSection people={people} posts={reviewPool} />
 
         {isRefreshing ? (
           <LoadingSkeleton />
@@ -378,7 +402,7 @@ function Metric({
 
   return (
     <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white/80 px-4 py-3 shadow-sm">
-      <span className="text-sm font-medium text-zinc-500">{label}</span>
+      <span className="text-sm font-semibold text-zinc-600">{label}</span>
       <span className={`rounded-full px-2.5 py-1 text-sm font-bold ${toneClass}`}>
         {value}
       </span>
