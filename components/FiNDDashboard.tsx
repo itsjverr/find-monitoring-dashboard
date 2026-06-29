@@ -13,9 +13,10 @@ import { MasonryFeed } from "@/components/MasonryFeed";
 import { FlaggedPostsSection } from "@/components/FlaggedPostsSection";
 import { PersonStatsSection } from "@/components/PersonStatsSection";
 import { PostDetailDrawer } from "@/components/PostDetailDrawer";
+import { PlatformBadge } from "@/components/PlatformBadge";
 import { SearchBar } from "@/components/SearchBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { FeedPost, Person, SocialAccount, SortMode } from "@/lib/types";
+import { FeedPost, Person, Platform, SocialAccount, SortMode } from "@/lib/types";
 
 type FeedResponse = {
   posts?: FeedPost[];
@@ -143,6 +144,27 @@ export function FiNDDashboard({
   const hiddenSourceCount = hiddenContentCount + sourceIssueCount;
   const pinnedCount = reviewPool.filter((post) => post.isPinned).length;
   const flaggedCount = reviewPool.filter((post) => post.isFlagged).length;
+  const platformCoverage = (["Facebook", "Instagram", "X"] as Platform[]).map(
+    (platform) => {
+      const accountCount = socialAccounts.filter(
+        (account) =>
+          account.active && account.platform === platform && account.profileUrl?.trim()
+      ).length;
+      const reviewPostCount = reviewPool.filter(
+        (post) => post.platform === platform
+      ).length;
+      const olderPostCount = presentablePosts.filter(
+        (post) => post.platform === platform && !withinDateRange(post.publishedAt, "30d")
+      ).length;
+
+      return {
+        platform,
+        accountCount,
+        reviewPostCount,
+        olderPostCount
+      };
+    }
+  );
   const lastFetchedAt = presentablePosts
     .map((post) => new Date(post.fetchedAt).getTime())
     .filter(Number.isFinite)
@@ -322,20 +344,50 @@ export function FiNDDashboard({
           <Metric label="Hidden sources" value={hiddenSourceCount} tone="zinc" />
         </div>
 
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white/80 px-4 py-3 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-900/80">
-          <div>
-            <p className="font-semibold text-ink">Home feed quality</p>
-            <p className="text-zinc-500">
-              {hiddenSourceCount === 0
-                ? "Only recent, readable posts are shown in the home feed."
-                : `${hiddenSourceCount} private, empty, old, or incomplete sources are kept out of the home feed.`}
-            </p>
+        <div className="mb-5 rounded-lg border border-zinc-200 bg-white/80 px-4 py-3 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-900/80">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-ink">Home feed quality</p>
+              <p className="text-zinc-500">
+                {hiddenSourceCount === 0
+                  ? "Only recent, readable posts are shown in the home feed."
+                  : `${hiddenSourceCount} private, empty, old, or incomplete sources are kept out of the home feed.`}
+              </p>
+            </div>
+            <div className="text-left text-xs font-semibold text-zinc-500 sm:text-right">
+              <p>{reviewPool.length} review-ready posts from the last 30 days</p>
+              <p>
+                Last fetch: {lastFetchedAt ? formatDateTime(lastFetchedAt) : "not available"}
+              </p>
+            </div>
           </div>
-          <div className="text-left text-xs font-semibold text-zinc-500 sm:text-right">
-            <p>{reviewPool.length} review-ready posts from the last 30 days</p>
-            <p>
-              Last fetch: {lastFetchedAt ? formatDateTime(lastFetchedAt) : "not available"}
-            </p>
+
+          <div className="mt-3 grid gap-2 lg:grid-cols-3">
+            {platformCoverage.map((item) => {
+              const status =
+                item.accountCount === 0
+                  ? "No active sources"
+                  : item.reviewPostCount > 0
+                    ? `${item.reviewPostCount} in review pool`
+                    : item.olderPostCount > 0
+                      ? "Only older public posts"
+                      : "No recent public posts";
+
+              return (
+                <div
+                  key={item.platform}
+                  className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <PlatformBadge platform={item.platform} />
+                  <div className="min-w-0 text-right">
+                    <p className="truncate text-xs font-semibold text-ink">{status}</p>
+                    <p className="text-[11px] font-medium text-zinc-500">
+                      {item.accountCount} active profiles
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -125,6 +125,12 @@ function looksLikeImageUrl(value: string) {
   );
 }
 
+function isProfileImageKey(key: string) {
+  return /avatar|profile|profilepic|profile_pic|profileimage|profile_image|author|owner|userpic|user_pic/i.test(
+    key
+  );
+}
+
 function findImageUrl(value: unknown, depth = 0): string | undefined {
   if (depth > 5 || value == null) {
     return undefined;
@@ -167,6 +173,10 @@ function findImageUrl(value: unknown, depth = 0): string | undefined {
   ];
 
   for (const key of preferredKeys) {
+    if (isProfileImageKey(key)) {
+      continue;
+    }
+
     const result = findImageUrl(object[key], depth + 1);
 
     if (result) {
@@ -174,7 +184,11 @@ function findImageUrl(value: unknown, depth = 0): string | undefined {
     }
   }
 
-  for (const entry of Object.values(object)) {
+  for (const [key, entry] of Object.entries(object)) {
+    if (isProfileImageKey(key)) {
+      continue;
+    }
+
     const result = findImageUrl(entry, depth + 1);
 
     if (result) {
@@ -231,8 +245,7 @@ function normalizeApifyItem(
       "thumbnail",
       "thumbnailUrl",
       "mediaUrl",
-      "videoThumbnail",
-      "owner.profilePicUrl"
+      "videoThumbnail"
     ]) ??
     pickFirstArrayString(item, ["images", "imageUrls", "media", "attachments"]) ??
     findImageUrl(item);

@@ -52,8 +52,13 @@ export function PostCard({
 }) {
   const preview = post.mediaUrl ?? post.thumbnailUrl;
   const [imageFailed, setImageFailed] = useState(false);
-  const showImagePreview = Boolean(preview) && !imageFailed;
+  const [imageIsSharpEnough, setImageIsSharpEnough] = useState(true);
+  const showImagePreview = Boolean(preview) && !imageFailed && imageIsSharpEnough;
   const hasRealCaption = !isPlaceholderText(post.text);
+
+  if (!showImagePreview && !hasRealCaption && (imageFailed || !imageIsSharpEnough)) {
+    return null;
+  }
 
   return (
     <article
@@ -79,8 +84,16 @@ export function PostCard({
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"
+              onLoad={(event) => {
+                const image = event.currentTarget;
+                const shortestSide = Math.min(image.naturalWidth, image.naturalHeight);
+
+                if (shortestSide > 0 && shortestSide < 260) {
+                  setImageIsSharpEnough(false);
+                }
+              }}
               onError={() => setImageFailed(true)}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+              className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]"
             />
             {post.mediaType === "video" ? (
               <span className="absolute inset-0 m-auto flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur">
