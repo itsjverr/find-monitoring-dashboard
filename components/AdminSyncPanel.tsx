@@ -16,6 +16,9 @@ type SyncResponse = {
   logs?: SyncLog[];
   message?: string;
   error?: string;
+  checked?: number;
+  hasMore?: boolean;
+  nextCursor?: string | null;
 };
 
 export function AdminSyncPanel() {
@@ -24,23 +27,58 @@ export function AdminSyncPanel() {
 
   async function syncNow() {
     setIsSyncing(true);
-    setResult(null);
+    setResult({ fetched: 0, logs: [], checked: 0, hasMore: true });
 
     try {
-      const response = await fetch("/api/admin/sync-now", {
-        method: "POST",
-        cache: "no-store"
-      });
-      const text = await response.text();
-      let data: SyncResponse = {};
+      let cursor: string | undefined;
+      let hasMore = true;
+      let fetched = 0;
+      let checked = 0;
+      const logs: SyncLog[] = [];
 
-      try {
-        data = text ? (JSON.parse(text) as SyncResponse) : {};
-      } catch {
-        data = { error: text || "Sync failed" };
+      while (hasMore) {
+        const response = await fetch("/api/admin/sync-now", {
+          method: "POST",
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ cursor, limit: 1 })
+        });
+        const text = await response.text();
+        let data: SyncResponse = {};
+
+        try {
+          data = text ? (JSON.parse(text) as SyncResponse) : {};
+        } catch {
+          data = { error: text || "Sync failed" };
+        }
+
+        if (!response.ok || data.error) {
+          setResult({
+            error: data.error ?? "Sync failed",
+            fetched,
+            checked,
+            logs
+          });
+          return;
+        }
+
+        fetched += data.fetched ?? 0;
+        checked += data.checked ?? 0;
+        logs.push(...(data.logs ?? []));
+        cursor = data.nextCursor ?? undefined;
+        hasMore = Boolean(data.hasMore && cursor);
+
+        setResult({
+          status: "ok",
+          fetched,
+          checked,
+          logs,
+          hasMore,
+          nextCursor: cursor ?? null
+        });
       }
-
-      setResult(response.ok ? data : { error: data.error ?? "Sync failed" });
     } catch (error) {
       setResult({ error: error instanceof Error ? error.message : "Sync failed" });
     } finally {
@@ -86,12 +124,16 @@ export function AdminSyncPanel() {
               <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
               <div>
                 <p className="font-semibold text-ink">
-                  Sync complete: {result.fetched ?? 0} posts fetched.
+                  {isSyncing || result.hasMore
+                    ? `Syncing: ${result.fetched ?? 0} posts fetched.`
+                    : `Sync complete: ${result.fetched ?? 0} posts fetched.`}
                 </p>
                 <p className="mt-1 leading-6 text-zinc-500">
-                  {failedLogs.length === 0
-                    ? "All checked sources responded cleanly."
-                    : `${failedLogs.length} sources need attention.`}
+                  {result.hasMore
+                    ? `${result.checked ?? 0} sources checked so far.`
+                    : failedLogs.length === 0
+                      ? "All checked sources responded cleanly."
+                      : `${failedLogs.length} sources need attention.`}
                 </p>
               </div>
             </div>

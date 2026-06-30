@@ -3,6 +3,11 @@ import { ConnectorResult } from "@/lib/connectors/base";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { Platform, SocialAccount } from "@/lib/types";
 
+type RunFetchPostsOptions = {
+  limit?: number;
+  cursor?: string;
+};
+
 type DbSocialAccount = {
   id: string;
   person_id: string;
@@ -41,7 +46,7 @@ async function writeLog(
   });
 }
 
-export async function runFetchPosts() {
+export async function runFetchPosts(options: RunFetchPostsOptions = {}) {
   const supabase = getSupabaseAdmin();
 
   if (!supabase) {
@@ -54,16 +59,28 @@ export async function runFetchPosts() {
     };
   }
 
-  const { data: rows, error } = await supabase
+  const limit = Math.max(1, Math.min(options.limit ?? 1, 5));
+  let query = supabase
     .from("social_accounts")
     .select("id, person_id, platform, handle, profile_url, api_account_id, active")
-    .eq("active", true);
+    .eq("active", true)
+    .neq("profile_url", "")
+    .order("id", { ascending: true })
+    .limit(limit + 1);
+
+  if (options.cursor) {
+    query = query.gt("id", options.cursor);
+  }
+
+  const { data: rows, error } = await query;
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const accounts = (rows ?? []) as DbSocialAccount[];
+  const pageRows = ((rows ?? []) as DbSocialAccount[]).slice(0, limit);
+  const extraRow = ((rows ?? []) as DbSocialAccount[])[limit];
+  const accounts = pageRows;
   const logs: Array<{ accountId: string; platform: Platform; status: string; message: string }> =
     [];
   let fetched = 0;
@@ -125,5 +142,12 @@ export async function runFetchPosts() {
     });
   }
 
-  return { status: "ok", fetched, logs };
+  return {
+    status: "ok",
+    fetched,
+    logs,
+    nextCursor: extraRow ? accounts.at(-1)?.id : null,
+    hasMore: Boolean(extraRow),
+    checked: accounts.length
+  };
 }

@@ -21,7 +21,23 @@ function getInputTemplate(platform: Platform) {
 }
 
 function maxItems() {
-  return Number(process.env.APIFY_MAX_ITEMS ?? "5");
+  const configured = Number(process.env.APIFY_MAX_ITEMS ?? "1");
+
+  if (!Number.isFinite(configured) || configured < 1) {
+    return 1;
+  }
+
+  return Math.min(Math.floor(configured), 2);
+}
+
+function apifyTimeoutMs() {
+  const configured = Number(process.env.APIFY_TIMEOUT_MS ?? "8000");
+
+  if (!Number.isFinite(configured)) {
+    return 8000;
+  }
+
+  return Math.max(3000, Math.min(configured, 8500));
 }
 
 export function hasApifyActor(platform: Platform) {
@@ -463,10 +479,13 @@ export async function fetchApifyPublicPosts(
   const url = `https://api.apify.com/v2/actors/${encodeURIComponent(
     actorId
   )}/run-sync-get-dataset-items?${params.toString()}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), apifyTimeoutMs());
 
   try {
     const response = await fetch(url, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
@@ -509,11 +528,22 @@ export async function fetchApifyPublicPosts(
       posts: (items as ApifyItem[]).map((item) => normalizeApifyItem(platform, account, item))
     };
   } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return {
+        ok: false,
+        status: "error",
+        message: `${platform} / ${account.handle}: Apify took too long to respond. FiND skipped this source so the sync can continue.`,
+        posts: []
+      };
+    }
+
     return {
       ok: false,
       status: "error",
       message: error instanceof Error ? error.message : "Apify request failed",
       posts: []
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
