@@ -3,12 +3,17 @@ import { NormalizedConnectorPost, Platform, SocialAccount } from "@/lib/types";
 
 type ApifyItem = Record<string, unknown>;
 
+const defaultActorIds: Partial<Record<Platform, string>> = {
+  Instagram: "apify/instagram-scraper",
+  X: "apidojo/tweet-scraper"
+};
+
 function platformKey(platform: Platform) {
   return platform === "X" ? "X" : platform.toUpperCase();
 }
 
 function getActorId(platform: Platform) {
-  return process.env[`APIFY_${platformKey(platform)}_ACTOR_ID`];
+  return process.env[`APIFY_${platformKey(platform)}_ACTOR_ID`] ?? defaultActorIds[platform];
 }
 
 function getInputTemplate(platform: Platform) {
@@ -33,11 +38,53 @@ function replaceTemplateValues(template: string, account: SocialAccount) {
     .replaceAll("{{limit}}", String(maxItems()));
 }
 
+function cleanHandle(account: SocialAccount) {
+  return account.handle.replace(/^@/, "").trim();
+}
+
+function buildInstagramInput(account: SocialAccount) {
+  return {
+    directUrls: [account.profileUrl],
+    resultsType: "posts",
+    resultsLimit: maxItems(),
+    maxItems: maxItems()
+  };
+}
+
+function buildXInput(account: SocialAccount) {
+  const handle = cleanHandle(account);
+  const profileUrl = account.profileUrl || `https://x.com/${handle}`;
+  const actorId = getActorId("X")?.toLowerCase() ?? "";
+
+  if (actorId.includes("apidojo")) {
+    return {
+      searchTerms: [`from:${handle} -filter:replies -filter:retweets`],
+      maxItems: maxItems(),
+      sort: "Latest"
+    };
+  }
+
+  return {
+    startUrls: [{ url: profileUrl }],
+    searchTerms: [`from:${handle}`],
+    maxItems: maxItems(),
+    resultsLimit: maxItems()
+  };
+}
+
 function buildInput(platform: Platform, account: SocialAccount) {
   const template = getInputTemplate(platform);
 
   if (template) {
     return JSON.parse(replaceTemplateValues(template, account)) as Record<string, unknown>;
+  }
+
+  if (platform === "Instagram") {
+    return buildInstagramInput(account);
+  }
+
+  if (platform === "X") {
+    return buildXInput(account);
   }
 
   return {
