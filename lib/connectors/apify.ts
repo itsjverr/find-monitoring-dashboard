@@ -152,7 +152,20 @@ function pickFirstArrayString(item: ApifyItem, paths: string[]) {
 
       const firstObject = value.map(asObject).find(Boolean);
       const image = firstObject
-        ? pickString(firstObject, ["url", "src", "image", "imageUrl", "displayUrl"])
+        ? pickString(firstObject, [
+            "url",
+            "src",
+            "image",
+            "imageUrl",
+            "image_url",
+            "displayUrl",
+            "media_url",
+            "media_url_https",
+            "preview_image_url",
+            "previewImageUrl",
+            "fullUrl",
+            "expandedUrl"
+          ])
         : undefined;
 
       if (image) {
@@ -209,9 +222,16 @@ function findImageUrl(value: unknown, depth = 0): string | undefined {
     "full_picture",
     "fullPicture",
     "displayUrl",
+    "display_url",
     "imageUrl",
+    "image_url",
     "image",
+    "media_url",
+    "media_url_https",
+    "preview_image_url",
+    "previewImageUrl",
     "thumbnailUrl",
+    "thumbnail_url",
     "thumbnail",
     "picture",
     "photo",
@@ -287,16 +307,52 @@ function normalizeApifyItem(
       "picture",
       "photo",
       "displayUrl",
+      "display_url",
       "imageUrl",
+      "image_url",
       "image",
+      "media_url",
+      "media_url_https",
+      "preview_image_url",
+      "previewImageUrl",
       "thumbnail",
       "thumbnailUrl",
+      "thumbnail_url",
       "mediaUrl",
-      "videoThumbnail"
+      "videoThumbnail",
+      "extendedEntities.media.0.media_url_https",
+      "extendedEntities.media.0.media_url",
+      "extended_entities.media.0.media_url_https",
+      "extended_entities.media.0.media_url",
+      "entities.media.0.media_url_https",
+      "entities.media.0.media_url",
+      "photos.0.url",
+      "photos.0.media_url_https",
+      "media.0.url",
+      "media.0.media_url_https",
+      "mediaDetails.0.media_url_https",
+      "mediaDetails.0.url"
     ]) ??
-    pickFirstArrayString(item, ["images", "imageUrls", "media", "attachments"]) ??
+    pickFirstArrayString(item, [
+      "images",
+      "imageUrls",
+      "media",
+      "attachments",
+      "photos",
+      "entities.media",
+      "extendedEntities.media",
+      "extended_entities.media",
+      "mediaDetails"
+    ]) ??
     findImageUrl(item);
-  const video = pickString(item, ["videoUrl", "video", "video.url", "videoUrlHd"]);
+  const video = pickString(item, [
+    "videoUrl",
+    "video",
+    "video.url",
+    "videoUrlHd",
+    "extendedEntities.media.0.video_info.variants.0.url",
+    "extended_entities.media.0.video_info.variants.0.url"
+  ]);
   const text =
     pickString(item, [
       "text",
