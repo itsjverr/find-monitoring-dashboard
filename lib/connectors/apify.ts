@@ -58,6 +58,9 @@ function buildXInput(account: SocialAccount) {
 
   if (actorId.includes("apidojo")) {
     return {
+      startUrls: [{ url: profileUrl }],
+      twitterHandles: [handle],
+      author: handle,
       searchTerms: [`from:${handle} -filter:replies -filter:retweets`],
       maxItems: maxItems(),
       sort: "Latest"
@@ -298,7 +301,8 @@ function normalizeApifyItem(
       "permalinkUrl",
       "shortCodeUrl",
       "link",
-      "facebookUrl"
+      "facebookUrl",
+      "twitterUrl"
     ]) ?? account.profileUrl;
   const image =
     pickString(item, [
@@ -331,7 +335,10 @@ function normalizeApifyItem(
       "media.0.url",
       "media.0.media_url_https",
       "mediaDetails.0.media_url_https",
-      "mediaDetails.0.url"
+      "mediaDetails.0.url",
+      "article.coverImage",
+      "card.binding_values.thumbnail_image.image_value.url",
+      "card.binding_values.photo_image_full_size_large.image_value.url"
     ]) ??
     pickFirstArrayString(item, [
       "images",
@@ -342,7 +349,8 @@ function normalizeApifyItem(
       "entities.media",
       "extendedEntities.media",
       "extended_entities.media",
-      "mediaDetails"
+      "mediaDetails",
+      "article.contentState.media"
     ]) ??
     findImageUrl(item);
   const video = pickString(item, [
@@ -384,14 +392,15 @@ function normalizeApifyItem(
         "time",
         "publishedAt",
         "createdAt",
+        "created_at",
         "created_time"
       ])
     ),
     engagementCount:
       pickNumber(item, ["likesCount", "likes", "likeCount", "reactionsCount"]) +
-      pickNumber(item, ["commentsCount", "comments", "commentCount"]) +
-      pickNumber(item, ["sharesCount", "shares", "shareCount"]) +
-      pickNumber(item, ["viewsCount", "views", "videoViewCount"]),
+      pickNumber(item, ["commentsCount", "comments", "commentCount", "replyCount"]) +
+      pickNumber(item, ["sharesCount", "shares", "shareCount", "retweetCount", "quoteCount"]) +
+      pickNumber(item, ["viewsCount", "views", "videoViewCount", "bookmarkCount"]),
     raw: item
   };
 }
@@ -485,6 +494,15 @@ export async function fetchApifyPublicPosts(
     }
 
     const items = body.map(asObject).filter(Boolean);
+
+    if (platform === "X" && items.length === 0) {
+      return {
+        ok: false,
+        status: "error",
+        message: `${platform} / ${account.handle}: Apify returned 0 tweets. Check that the X actor is available through API on your Apify plan and that the profile has public recent tweets.`,
+        posts: []
+      };
+    }
 
     return {
       ok: true,
