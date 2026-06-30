@@ -31,7 +31,14 @@ export function AdminSyncPanel() {
         method: "POST",
         cache: "no-store"
       });
-      const data = (await response.json()) as SyncResponse;
+      const text = await response.text();
+      let data: SyncResponse = {};
+
+      try {
+        data = text ? (JSON.parse(text) as SyncResponse) : {};
+      } catch {
+        data = { error: text || "Sync failed" };
+      }
 
       setResult(response.ok ? data : { error: data.error ?? "Sync failed" });
     } catch (error) {

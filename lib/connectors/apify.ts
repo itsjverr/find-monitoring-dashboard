@@ -340,6 +340,37 @@ function normalizeApifyItem(
   };
 }
 
+async function readApifyResponse(response: Response) {
+  const text = await response.text();
+
+  if (!text.trim()) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { error: { message: text.slice(0, 500) } };
+  }
+}
+
+function apifyErrorMessage(
+  body: unknown,
+  response: Response,
+  actorId: string,
+  platform: Platform,
+  account: SocialAccount
+) {
+  const error = asObject(body)?.error;
+  const message = asObject(error)?.message;
+
+  if (typeof message === "string" && message.trim()) {
+    return `${platform} / ${account.handle}: ${message.trim()}`;
+  }
+
+  return `${platform} / ${account.handle}: Apify actor ${actorId} returned status ${response.status}`;
+}
+
 export async function fetchApifyPublicPosts(
   platform: Platform,
   account: SocialAccount
@@ -377,18 +408,27 @@ export async function fetchApifyPublicPosts(
       },
       body: JSON.stringify(buildInput(platform, account))
     });
-    const body = (await response.json()) as unknown;
+    const body = await readApifyResponse(response);
 
     if (!response.ok) {
-      const error = asObject(body)?.error;
-      const message =
-        (asObject(error)?.message as string | undefined) ??
-        `Apify request failed with status ${response.status}`;
-
-      return { ok: false, status: "error", message, posts: [] };
+      return {
+        ok: false,
+        status: "error",
+        message: apifyErrorMessage(body, response, actorId, platform, account),
+        posts: []
+      };
     }
 
-    const items = Array.isArray(body) ? body.map(asObject).filter(Boolean) : [];
+    if (!Array.isArray(body)) {
+      return {
+        ok: false,
+        status: "error",
+        message: apifyErrorMessage(body, response, actorId, platform, account),
+        posts: []
+      };
+    }
+
+    const items = body.map(asObject).filter(Boolean);
 
     return {
       ok: true,
